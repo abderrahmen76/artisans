@@ -255,13 +255,22 @@ export async function POST(request: NextRequest) {
     await client.close()
 
     return NextResponse.json({ success: true, message: "Request updated successfully" })
-  } catch (error) {
-    console.error('Error updating request:', error)
-    console.error('Error stack:', error.stack)
-    console.error('Request data:', { requestId, userId, action, artisanId })
-    return NextResponse.json(
-      { error: 'Erreur lors de la mise à jour de la demande', details: error.message },
-      { status: 500 }
-    )
+  } catch (error: unknown) {
+    if (error instanceof Error) {
+      console.error('Error updating request:', error);
+      console.error('Error stack:', error.stack);
+      console.error('Request data:', { requestId, userId, action, artisanId });
+      return NextResponse.json(
+        { error: 'Erreur lors de la mise à jour de la demande', details: error.message },
+        { status: 500 }
+      );
+    } else {
+      console.error('Unknown error:', error);
+      console.error('Request data:', { requestId, userId, action, artisanId });
+      return NextResponse.json(
+        { error: 'Erreur lors de la mise à jour de la demande', details: 'Unknown error' },
+        { status: 500 }
+      );
+    }
   }
 }

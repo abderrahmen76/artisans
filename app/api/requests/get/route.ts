@@ -5,7 +5,8 @@ interface RequestQuery {
   userId?: ObjectId
   status?: string
   profession?: string
-  location?: { $regex: string, $options: string }
+  location?: { $regex: string; $options: string }
+  $or?: RequestQuery[] // <-- add this for MongoDB $or queries
 }
 
 const MONGODB_URI = process.env.MONGODB_URI
@@ -52,16 +53,19 @@ export async function GET(request: NextRequest) {
         }
       },
       { $unwind: "$user" },
-      ...(userId ? [{
-        $lookup: {
-          from: "users",
-          localField: "artisanId",
-          foreignField: "_id",
-          as: "artisan"
+      ...(userId ? [
+        {
+          $lookup: {
+            from: "users",
+            localField: "artisanId",
+            foreignField: "_id",
+            as: "artisan"
+          }
+        },
+        {
+          $unwind: { path: "$artisan", preserveNullAndEmptyArrays: true }
         }
-      }, {
-        $unwind: { path: "$artisan", preserveNullAndEmptyArrays: true }
-      }] : []),
+      ] : []),
       {
         $project: userId ? {
           _id: { $toString: "$_id" },
@@ -113,11 +117,20 @@ export async function GET(request: NextRequest) {
     await client.close()
 
     return NextResponse.json({ requests })
-  } catch (error) {
-    console.error('Error fetching requests:', error)
-    return NextResponse.json(
-      { error: 'Erreur lors du chargement des demandes' },
-      { status: 500 }
-    )
+  } catch (error: unknown) {
+    // Type guard for errors
+    if (error instanceof Error) {
+      console.error('Error fetching requests:', error)
+      return NextResponse.json(
+        { error: 'Erreur lors du chargement des demandes', details: error.message },
+        { status: 500 }
+      )
+    } else {
+      console.error('Unknown error fetching requests:', error)
+      return NextResponse.json(
+        { error: 'Erreur lors du chargement des demandes', details: 'Unknown error' },
+        { status: 500 }
+      )
+    }
   }
 }

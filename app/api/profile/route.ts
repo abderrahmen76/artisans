@@ -33,8 +33,8 @@ export async function GET(req: NextRequest) {
 
     let stats = null
     let subscription = null
-    let training = []
-    let recentActivity = []
+    let training: any[] = [];
+    let recentActivity: any[] = []
 
     // For artisans, get additional data
     if (user.userType === "artisan") {
